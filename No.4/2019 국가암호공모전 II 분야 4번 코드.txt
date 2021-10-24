@@ -1,0 +1,434 @@
+## 기초
+
+# 숫자를 str으로
+def num_to_str(num):
+    a=''
+    while(num !=0):
+        a += chr(num & 0xff)
+        num = num >> 8
+    a = a[::-1]
+    return a
+
+# str을 숫자로
+def str_to_num(abc):
+    num=0
+    a = [ord(i) for i in abc]
+    for i in a:
+        num = (num << 8) + i
+    return num
+
+# HenselLift
+def HenselLift(P,p,prec):
+    E = P.curve()
+    Eq = E.change_ring(QQ)
+    Ep = Eq.change_ring(Qp(p,prec))
+    x_P,y_P = P.xy()
+    x_lift = ZZ(x_P)
+    y_lift = ZZ(y_P)
+    x, y, a1, a2, a3, a4, a6 = var('x,y,a1,a2,a3,a4,a6')
+    f(a1,a2,a3,a4,a6,x,y) = y^2 + a1*x*y + a3*y - x^3 - a2*x^2 - a4*x - a6
+    g(y) = f(ZZ(Eq.a1()),ZZ(Eq.a2()),ZZ(Eq.a3()),ZZ(Eq.a4()),ZZ(Eq.a6()),ZZ(x_P),y)
+    gDiff = g.diff()
+    for i in range(1,prec):
+        uInv = ZZ(gDiff(y=y_lift))
+        u = uInv.inverse_mod(p^i)
+        y_lift = y_lift - u*g(y_lift)
+        y_lift = ZZ(Mod(y_lift,p^(i+1)))
+    y_lift = y_lift+O(p^prec)
+    return Ep([x_lift,y_lift]) 
+
+# SmartAttack
+def SmartAttack(P,Q,p,prec):
+    E = P.curve()
+    Eqq = E.change_ring(QQ)
+    Eqp = Eqq.change_ring(Qp(p,prec))
+    P_Qp = HenselLift(P,p,prec)
+    Q_Qp = HenselLift(Q,p,prec)
+    p_times_P = p*P_Qp
+    p_times_Q=p*Q_Qp
+    x_P,y_P = p_times_P.xy()
+    x_Q,y_Q = p_times_Q.xy()
+    phi_P = -(x_P/y_P)
+    phi_Q = -(x_Q/y_Q)
+    k = phi_Q/phi_P
+    k = Mod(k,p)
+    return k 
+
+# sqrRoot
+def sqrRoot(n, q):
+    r = pow(n,(q+1)/4,q)
+    return r, q - r 
+
+# Y좌표 찾기
+def findY(x):
+    y2 = (x ** 3 + a * x + b) % p
+    y, my = sqrRoot(y2, p)
+    return y2 == y*y%p, y
+
+# 문제에서 주어진 조건들
+p = 112817876910624391112586233842848268584935393852332056135638763933471640076719
+a = 49606376303929463253586154769489869489108883753251757521607397128446713725753
+b = 79746959374671415610195463996521688925529471350164217787900499181173830926217 
+
+# 타원곡선
+E=EllipticCurve(GF(p),[0,0,0,a,b]) 
+
+# 문제에서 주어진 점들
+P=E([103039657693294116462834651854367833897272806854412839639851017006923575559024,
+              77619251402197618012332577948300478225863306465872072566919796455982120391100])
+Q=E([54754931428196528902595765731417656438047316294230479980073352787194748472682,
+               31061354882773147087028928252065932953521048346447896605357202055562579555845]) 
+
+# 암호문을 32비트씩 쪼갠 것
+ct=[0xa92d66711f9ff86cd94c84d338bd983949fa3b3881d535b2e230fb338e91,
+    0xc2a2d17bdf6566ae6c65838b91e9b0dc3fbadcf8f03e4a18e9adeaa91f13,
+    0x9a8fc9ef233471d50599d43fd02b511d438970ed88207e5611bba2345acf,
+    0x7bb42dfcfe4005a0e01a5acbedfcc100e170470c34c66fd2cc8773aa9d16,
+    0xe13380793363c618f83a0ef785a794d6037d7b318e54c1853b1b0e83dad3,
+    0xcde2b97d3ac0e918475b1e23a9e9d13388522d391050f3ecca5d47558a09,
+    0x35c3be1b0ff00b418475571133b94e5c14146453e9b4961635329ba8b499,
+    0x40baa6b9525f58d969e8b570fc7f1e2cdee17c4980b662556d564bc2975f,
+    0x158f067e8d3b4560538adc3bb5f02f77071cd6471dbd3b6de27a484f9688,
+    0x089e66e457767ee0ed12798f549ea05e6459ca11deec74986a5e3fc14444,
+    0x01ae7675a8c1af26ed36d341772203e8502098deb0fc7d0c322de615ea93,
+    0x7351232a22014cde072bab7131bdf0142445241d237652fd6299c07f4adf,
+    0x4fa913d08558c4b81a95beccc5219934ae6f90303e1c822c4c314e7d0b9c,
+    0x28d364a285d165d2ba06ad1e16da5713d6cb7e15abe582ac892608b46da4,
+    0x3642bf64a245412338c3e2409b8c23f359174c48683691d5135a043a595a,
+    0x919df211ea0064e7e6c5a56ba4b51aaa8e3e40141e9999d003cf468e02a2,
+    0x039a929cff446b3c1e8de665af665be959232297e5ed023c968d235d9505,
+    0xf05b25a2f55173a24c2b3f4028c0464d360b28db72d9fd652f74dde2abf5,
+    0x01a05b54b9a9e1ed75d4e5c7fda00543aca3d8393e255c93abb411c8e2a9,
+    0x14cce95a458eb72433a3c93ae5916cc6bfde89bf99db915d8925cb70143d,
+    0x88b55f36090780ca8a59e6ba385eb616ad43c6f728ecc98b136cdc14abbb,
+    0x5bd09f1118e84c8ab30343a1018d2cc54213269a848df366855895a6d6ea,
+    0x17248c3797647b91f7c94c69b6ff5c6e81cdea6a4aa1189fd998ad5ba4ea,
+    0x238f0589ad005cf2c6b4347dd202ea339ca3bd46afc0dd60bd13c5390e30,
+    0x852cf846a697f65cc450d1eb956b2e7a8e45b8b784d4f13a21e88b981d6b,
+    0xea9c34b089f501e58ade1483198c64698ed3d9a56af36bfa527ba544b80b,
+    0xe5d637a204ccc8f8118d8b266675ab4326017fd83136e4aa3da93901ba54,
+    0x4f2ebff443f5f4932179d69f88426713ec368504584df692311065e885da,
+    0x91a621f5f6e29cda60816f0249745958509c034d180954132897a1d978c2,
+    0x45030131f7363d077bcec93e28cdc48769d95b5563976c76799d5159f7bf,
+    0x3da2ce8130863b8b0a8e0fe34b0ccf6c3f7835604a84f0462585eff39fed,
+    0x6f5d2d49ca87b24f3fbae4]
+
+## 30 2 case
+r='y figured out by the NSA for n'
+r=str_to_num(r)
+for i in range(31):
+    key = ct[i].__xor__(r)
+    for j in range(0xf96e):
+        y1,y2=findY(key)
+        if y1==True:
+            A=E([key,y2])
+            t=SmartAttack(Q,A,p,8)
+            T=ZZ(t)*P
+            s,s1=T.xy()
+            S=ZZ(s)*Q
+            k,k1=S.xy()
+            k=ZZ(k)
+            k=k&0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+            npt=ct[i+1].__xor__(k)
+            if (npt>>8*28)==0x6f77:
+                for n in range(30):
+                    ppt=(npt>>8*(27-n))-((npt>>8*(28-n))<<8)
+                    if ppt>0x7f:
+                        break
+                    if n==29:
+                        ii=i
+                        jj=j
+                        print(i)
+                        print(j)
+                        print(num_to_str(npt))
+        key = key+0x1000000000000000000000000000000000000000000000000000000000000
+
+## 1 30 1 case
+r=' figured out by the NSA for no'
+r=str_to_num(r)
+for i in range(1,31):
+    print i
+    key=ct[i].__xor__(r)
+    for j in range(0xf96f):
+        print j
+        y2 = (key ** 3 + a * key + b) % p
+        y, my = sqrRoot(y2,p)
+        if y2==y*y%p:
+            A=E([key,y])
+            t=SmartAttack(Q,A,p,8)
+            t=ZZ(t)
+            T=t*P
+            s,s1=T.xy()
+            S=ZZ(s)*Q
+            k,k1=S.xy()
+            k=ZZ(k)
+            k=k&0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+            npt=ct[i+1].__xor__(k)
+            if (npt>>8*29)==0x77:
+                t2=(t**3+a*t+b)%p
+                yy, myy = sqrRoot(t2,p)
+                if t2 == yy*yy%p:
+                    B=E([t,yy])
+                    c=SmartAttack(P,B,p,8)
+                    c=ZZ(c)
+                    C=c*Q
+                    k,k1=C.xy()
+                    k=ZZ(k)
+                    k=k&0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+                    npt=ct[i-1].__xor__(k)
+                    if (npt&0xff)==0x79:
+                        for n in range(30):
+                            ppt=(npt>>8*(27-n))-((npt>>8*(28-n))<<8)
+                            if ppt>0x7f:
+                                break
+                            if n==29:
+                                ii=i
+                                jj=j
+                                print(i)
+                                print(j)
+                                print(num_to_str(npt))
+                if t2 == myy*myy%p:
+                    B=E([t,myy])
+                    c=SmartAttack(P,B,p,8)
+                    c=ZZ(c)
+                    C=c*Q
+                    k,k1=C.xy()
+                    k=ZZ(k)
+                    k=k&0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+                    npt=ct[i-1].__xor__(k)
+                    if (npt&0xff)==0x79:
+                        for n in range(30):
+                            ppt=(npt>>8*(27-n))-((npt>>8*(28-n))<<8)
+                            if ppt>0x7f:
+                                break
+                            if n==29:
+                                ii=i
+                                jj=j
+                                print(i)
+                                print(j)
+                                print(num_to_str(npt))
+        if y2==my*my%p:
+            A=E([key,my])
+            t=SmartAttack(Q,A,p,8)
+            t=ZZ(t)
+            T=t*P
+            s,s1=T.xy()
+            S=ZZ(s)*Q
+            k,k1=S.xy()
+            k=ZZ(k)
+            k=k&0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+            npt=ct[i+1].__xor__(k)
+            if (npt>>8*29)==0x77:
+                t2=(t**3+a*t+b)%p
+                yy, myy = sqrRoot(t2,p)
+                if t2 == yy*yy%p:
+                    B=E([t,yy])
+                    c=SmartAttack(P,B,p,8)
+                    c=ZZ(c)
+                    C=c*Q
+                    k,k1=C.xy()
+                    k=ZZ(k)
+                    k=k&0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+                    npt=ct[i-1].__xor__(k)
+                    if (npt&0xff)==0x79:
+                        for n in range(30):
+                            ppt=(npt>>8*(27-n))-((npt>>8*(28-n))<<8)
+                            if ppt>0x7f:
+                                break
+                            if n==29:
+                                ii=i
+                                jj=j
+                                print(i)
+                                print(j)
+                                print(num_to_str(npt))
+                if t2 == myy*myy%p:
+                    B=E([t,myy])
+                    c=SmartAttack(P,B,p,8)
+                    c=ZZ(c)
+                    C=c*Q
+                    k,k1=C.xy()
+                    k=ZZ(k)
+                    k=k&0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+                    npt=ct[i-1].__xor__(k)
+                    if (npt&0xff)==0x79:
+                        for n in range(30):
+                            ppt=(npt>>8*(27-n))-((npt>>8*(28-n))<<8)
+                            if ppt>0x7f:
+                                break
+                            if n==29:
+                                ii=i
+                                jj=j
+                                print i
+                                print j
+                                print(num_to_str(npt))
+        key = key+0x1000000000000000000000000000000000000000000000000000000000000
+
+## 2 30 case
+r='figured out by the NSA for now'
+r=str_to_num(r)
+for i in range(1,31):
+    print i
+    key=ct[i].__xor__(r)
+    for j in range(0xf96f):
+        print j
+        y2 = (key ** 3 + a * key + b) % p
+        y, my = sqrRoot(y2,p)
+        if y2==y*y%p:
+            A=E([key,y])
+            t=SmartAttack(Q,A,p,8)
+            t=ZZ(t)
+            t2=(t**3+a*t+b)%p
+            yy, myy=sqrRoot(t2,p)
+            if t2==yy*yy%p:
+                B=E([t,yy])
+                c=SmartAttack(P,B,p,8)
+                c=ZZ(c)
+                C=c*Q
+                k,k1=C.xy()
+                k=ZZ(k)
+                k=k&0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+                npt=ct[i-1].__xor__(k)
+                if (npt&0xffff)==0x7920:
+                    for n in range(30):
+                        ppt=(npt>>8*(27-n))-((npt>>8*(28-n))<<8)
+                        if ppt>0x7f:
+                            break
+                        if n==29:
+                            ii=i
+                            jj=j
+                            print i
+                            print j
+                            print(num_to_str(npt))
+            if t2==myy*myy%p:
+                B=E([t,myy])
+                c=SmartAttack(P,B,p,8)
+                c=ZZ(c)
+                C=c*Q
+                k,k1=C.xy()
+                k=ZZ(k)
+                k=k&0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+                npt=ct[i-1].__xor__(k)
+                if (npt&0xffff)==0x7920:
+                    for n in range(30):
+                        ppt=(npt>>8*(27-n))-((npt>>8*(28-n))<<8)
+                        if ppt>0x7f:
+                            break
+                        if n==29:
+                            ii=i
+                            jj=j
+                            print i
+                            print j
+                            print(num_to_str(npt))
+        if y2==my*my%p:
+            A=E([key,my])
+            t=SmartAttack(Q,A,p,8)
+            t=ZZ(t)
+            t2=(t**3+a*t+b)%p
+            yy, myy=sqrRoot(t2,p)
+            if t2==yy*yy%p:
+                B=E([t,yy])
+                c=SmartAttack(P,B,p,8)
+                c=ZZ(c)
+                C=c*Q
+                k,k1=C.xy()
+                k=ZZ(k)
+                k=k&0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+                npt=ct[i-1].__xor__(k)
+                if (npt&0xffff)==0x7920:
+                    for n in range(30):
+                        ppt=(npt>>8*(27-n))-((npt>>8*(28-n))<<8)
+                        if ppt>0x7f:
+                            break
+                        if n==29:
+                            ii=i
+                            jj=j
+                            print i
+                            print j
+                            print(num_to_str(npt))
+            if t2==myy*myy%p:
+                B=E([t,myy])
+                c=SmartAttack(P,B,p,8)
+                c=ZZ(c)
+                C=c*Q
+                k,k1=C.xy()
+                k=ZZ(k)
+                k=k&0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+                npt=ct[i-1].__xor__(k)
+                if (npt&0xffff)==0x7920:
+                    for n in range(30):
+                        ppt=(npt>>8*(27-n))-((npt>>8*(28-n))<<8)
+                        if ppt>0x7f:
+                            break
+                        if n==29:
+                            ii=i
+                            jj=j
+                            print i
+                            print j
+                            print(num_to_str(npt))
+        key = key+0x1000000000000000000000000000000000000000000000000000000000000
+
+## key 찾기 # ii=7, jj=60359
+r='y figured out by the NSA for n'
+r=str_to_num(r)
+key = ct[ii].__xor__(r)
+key = key + (jj<<240)
+
+a1, a2 = findY(key)
+A = E([key,-a2])
+t7 = SmartAttack(Q,A,p,8)
+
+t71, t72 = findY(t7)
+B = E([t7,t72])
+t6=SmartAttack(P,B,p,8)
+
+t61, t62 = findY(t6)
+B = E([t6,-t62])
+t5=SmartAttack(P,B,p,8)
+
+t51, t52 = findY(t5)
+B = E([t5,t52])
+t4=SmartAttack(P,B,p,8)
+
+t41, t42 = findY(t4)
+B = E([t4,-t42])
+t3=SmartAttack(P,B,p,8)
+
+t31, t32 = findY(t3)
+B = E([t3,-t32])
+t2=SmartAttack(P,B,p,8)
+
+t21, t22 = findY(t2)
+B = E([t2,-t22])
+t1=SmartAttack(P,B,p,8)
+
+t11, t12 = findY(t1)
+B = E([t1,-t12])
+t0=SmartAttack(P,B,p,8)
+
+t01, t02 = findY(t0)
+B = E([t0,-t02])
+t=SmartAttack(P,B,p,8)
+
+## 복호화
+ct = 0xa92d66711f9ff86cd94c84d338bd983949fa3b3881d535b2e230fb338e91c2a2d17bdf6566ae6c65838b91e9b0dc3fbadcf8f03e4a18e9adeaa91f139a8fc9ef233471d50599d43fd02b511d438970ed88207e5611bba2345acf7bb42dfcfe4005a0e01a5acbedfcc100e170470c34c66fd2cc8773aa9d16e13380793363c618f83a0ef785a794d6037d7b318e54c1853b1b0e83dad3cde2b97d3ac0e918475b1e23a9e9d13388522d391050f3ecca5d47558a0935c3be1b0ff00b418475571133b94e5c14146453e9b4961635329ba8b49940baa6b9525f58d969e8b570fc7f1e2cdee17c4980b662556d564bc2975f158f067e8d3b4560538adc3bb5f02f77071cd6471dbd3b6de27a484f9688089e66e457767ee0ed12798f549ea05e6459ca11deec74986a5e3fc1444401ae7675a8c1af26ed36d341772203e8502098deb0fc7d0c322de615ea937351232a22014cde072bab7131bdf0142445241d237652fd6299c07f4adf4fa913d08558c4b81a95beccc5219934ae6f90303e1c822c4c314e7d0b9c28d364a285d165d2ba06ad1e16da5713d6cb7e15abe582ac892608b46da43642bf64a245412338c3e2409b8c23f359174c48683691d5135a043a595a919df211ea0064e7e6c5a56ba4b51aaa8e3e40141e9999d003cf468e02a2039a929cff446b3c1e8de665af665be959232297e5ed023c968d235d9505f05b25a2f55173a24c2b3f4028c0464d360b28db72d9fd652f74dde2abf501a05b54b9a9e1ed75d4e5c7fda00543aca3d8393e255c93abb411c8e2a914cce95a458eb72433a3c93ae5916cc6bfde89bf99db915d8925cb70143d88b55f36090780ca8a59e6ba385eb616ad43c6f728ecc98b136cdc14abbb5bd09f1118e84c8ab30343a1018d2cc54213269a848df366855895a6d6ea17248c3797647b91f7c94c69b6ff5c6e81cdea6a4aa1189fd998ad5ba4ea238f0589ad005cf2c6b4347dd202ea339ca3bd46afc0dd60bd13c5390e30852cf846a697f65cc450d1eb956b2e7a8e45b8b784d4f13a21e88b981d6bea9c34b089f501e58ade1483198c64698ed3d9a56af36bfa527ba544b80be5d637a204ccc8f8118d8b266675ab4326017fd83136e4aa3da93901ba544f2ebff443f5f4932179d69f88426713ec368504584df692311065e885da91a621f5f6e29cda60816f0249745958509c034d180954132897a1d978c245030131f7363d077bcec93e28cdc48769d95b5563976c76799d5159f7bf3da2ce8130863b8b0a8e0fe34b0ccf6c3f7835604a84f0462585eff39fed6f5d2d49ca87b24f3fbae4
+ct=num_to_str(ct)
+
+def decryption(ct,t):
+    loop = (len(ct)+29)/30
+    pt = bytearray('')
+    for i in range(0,loop):
+        T = t*P
+        s,ty = T.xy()
+        s=ZZ(s)
+        t = s
+        S = s*Q
+        r,sy = S.xy()
+        r=ZZ(r)
+        r = r & (2**(8 * 30) - 1)
+        blkLen = len(ct[30*i:30*(i+1)])
+        for j in range(1,blkLen+1):
+            pt += chr(((r>>((30-j)*8))&0xff).__xor__(ct[30*i+j-1]))
+    return pt
+
+pt=decryption(bytearray(ct),t)
+print('pt : ',bytes(pt))
